@@ -1,0 +1,59 @@
+
+We need to add salary fields to the PostJobForm component.
+
+Find this line in src/App.js:
+  const [formData, setFormData] = useState({
+    title: '', department: 'Engineering', level: 'Mid', location: '',
+    remote: 'Hybrid', description: '', skills: '', priority: 'normal'
+  });
+
+Replace it with:
+  const [formData, setFormData] = useState({
+    title: '', department: 'Engineering', level: 'Mid', location: '',
+    remote: 'Hybrid', description: '', skills: '', priority: 'normal',
+    salaryMin: '', salaryMax: '', salaryCurrency: 'USD'
+  });
+
+Then find this section (after the skills field):
+        <div className="form-group">
+          <label>Skills (comma-separated)</label>
+          <input type="text" value={formData.skills} onChange={(e) => setFormData({...formData, skills: e.target.value})} placeholder="e.g., React, Node.js" />
+        </div>
+
+Add this RIGHT AFTER it:
+        <div className="form-row">
+          <div className="form-group">
+            <label>Min Salary</label>
+            <input type="number" value={formData.salaryMin} onChange={(e) => setFormData({...formData, salaryMin: e.target.value})} placeholder="e.g., 100000" />
+          </div>
+          <div className="form-group">
+            <label>Max Salary</label>
+            <input type="number" value={formData.salaryMax} onChange={(e) => setFormData({...formData, salaryMax: e.target.value})} placeholder="e.g., 150000" />
+          </div>
+        </div>
+        <div className="form-group">
+          <label>Currency</label>
+          <select value={formData.salaryCurrency} onChange={(e) => setFormData({...formData, salaryCurrency: e.target.value})}>
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="AED">AED (د.إ)</option>
+          </select>
+        </div>
+
+Then find the handleSubmit function and update it:
+      await jobs.create({
+        ...formData,
+        skills: formData.skills.split(',').map(s => s.trim()).filter(s => s)
+      });
+
+Replace with:
+      await jobs.create({
+        ...formData,
+        skills: formData.skills.split(',').map(s => s.trim()).filter(s => s),
+        salaryRange: formData.salaryMin && formData.salaryMax ? {
+          min: parseInt(formData.salaryMin),
+          max: parseInt(formData.salaryMax),
+          currency: formData.salaryCurrency
+        } : undefined
+      });
