@@ -303,7 +303,6 @@ function RecommendForm() {
 function RecruiterRecommendations() {
   const [recs, setRecs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
     loadRecommendations();
