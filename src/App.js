@@ -304,6 +304,8 @@ function RecruiterRecommendations() {
   const [recs, setRecs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
 
   useEffect(() => {
     loadRecommendations();
@@ -331,6 +333,69 @@ function RecruiterRecommendations() {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this recommendation? This cannot be undone.')) return;
+    try {
+      const response = await fetch(`https://joyful-reflection-production-1049.up.railway.app/api/recommendations/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (response.ok) {
+        alert('Recommendation deleted!');
+        loadRecommendations();
+      }
+    } catch (err) {
+      alert('Error deleting recommendation');
+    }
+  };
+
+  const startEdit = (rec) => {
+    setEditingId(rec._id);
+    setEditForm({
+      name: rec.candidate.name,
+      email: rec.candidate.email,
+      phone: rec.candidate.phone || '',
+      currentRole: rec.candidate.currentRole || '',
+      currentCompany: rec.candidate.currentCompany || '',
+      yearsOfExperience: rec.candidate.yearsOfExperience || '',
+      linkedinUrl: rec.candidate.linkedinUrl || '',
+      notes: rec.recruiterNotes
+    });
+  };
+
+  const saveEdit = async (id) => {
+    try {
+      const response = await fetch(`https://joyful-reflection-production-1049.up.railway.app/api/recommendations/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          candidate: {
+            name: editForm.name,
+            email: editForm.email,
+            phone: editForm.phone,
+            currentRole: editForm.currentRole,
+            currentCompany: editForm.currentCompany,
+            yearsOfExperience: editForm.yearsOfExperience,
+            linkedinUrl: editForm.linkedinUrl
+          },
+          recruiterNotes: editForm.notes
+        })
+      });
+      if (response.ok) {
+        setEditingId(null);
+        alert('Updated successfully!');
+        loadRecommendations();
+      }
+    } catch (err) {
+      alert('Error updating');
+    }
+  };
+
+
+
   if (loading) return <div className="loading">Loading...</div>;
 
   return (
@@ -342,22 +407,57 @@ function RecruiterRecommendations() {
         <div className="recs-list">
           {recs.map(rec => (
             <div key={rec._id} className="rec-card">
-              <div className="rec-header">
-                <div>
-                  <h3>{rec.candidate.name}</h3>
-                  <p>{rec.candidate.currentRole}</p>
+              <div onClick={() => setExpandedId(expandedId === rec._id ? null : rec._id)} style={{cursor: 'pointer'}}>
+                <div className="rec-header">
+                  <div>
+                    <h3>{rec.candidate.name} {expandedId === rec._id ? '▼' : '▶'}</h3>
+                    <p>{rec.candidate.currentRole}</p>
+                  </div>
+                  <span className={`badge-${rec.status}`}>{rec.status}</span>
                 </div>
-                <span className={`badge-${rec.status}`}>{rec.status}</span>
+                <p><strong>For:</strong> {rec.job?.title} at {rec.job?.company?.name}</p>
               </div>
-              <p><strong>For:</strong> {rec.job?.title} at {rec.job?.company?.name}</p>
-              <p><strong>Your notes:</strong> {rec.recruiterNotes}</p>
-              {rec.status === 'draft' && (
-                <button className="btn-primary btn-sm" onClick={() => handleSubmit(rec._id)}>Submit to Company</button>
+              
+              {expandedId === rec._id && (
+                <div style={{marginTop: '15px', padding: '15px', background: '#f3f4f6', borderRadius: '6px'}} onClick={(e) => e.stopPropagation()}>
+                  {editingId === rec._id ? (
+                    <div style={{display: 'grid', gap: '10px'}}>
+                      <input value={editForm.name} onChange={(e) => setEditForm({...editForm, name: e.target.value})} placeholder="Name" style={{padding: '8px', borderRadius: '4px', border: '1px solid #ddd'}} />
+                      <input value={editForm.email} onChange={(e) => setEditForm({...editForm, email: e.target.value})} placeholder="Email" style={{padding: '8px', borderRadius: '4px', border: '1px solid #ddd'}} />
+                      <input value={editForm.phone} onChange={(e) => setEditForm({...editForm, phone: e.target.value})} placeholder="Phone" style={{padding: '8px', borderRadius: '4px', border: '1px solid #ddd'}} />
+                      <input value={editForm.currentRole} onChange={(e) => setEditForm({...editForm, currentRole: e.target.value})} placeholder="Current Role" style={{padding: '8px', borderRadius: '4px', border: '1px solid #ddd'}} />
+                      <input value={editForm.currentCompany} onChange={(e) => setEditForm({...editForm, currentCompany: e.target.value})} placeholder="Company" style={{padding: '8px', borderRadius: '4px', border: '1px solid #ddd'}} />
+                      <input value={editForm.yearsOfExperience} onChange={(e) => setEditForm({...editForm, yearsOfExperience: e.target.value})} placeholder="Years" style={{padding: '8px', borderRadius: '4px', border: '1px solid #ddd'}} />
+                      <input value={editForm.linkedinUrl} onChange={(e) => setEditForm({...editForm, linkedinUrl: e.target.value})} placeholder="LinkedIn" style={{padding: '8px', borderRadius: '4px', border: '1px solid #ddd'}} />
+                      <textarea value={editForm.notes} onChange={(e) => setEditForm({...editForm, notes: e.target.value})} placeholder="Notes" rows="3" style={{padding: '8px', borderRadius: '4px', border: '1px solid #ddd'}} />
+                      <div style={{display: 'flex', gap: '10px'}}>
+                        <button className="btn-primary btn-sm" onClick={() => saveEdit(rec._id)}>Save</button>
+                        <button className="btn-secondary btn-sm" onClick={() => setEditingId(null)}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p><strong>📧</strong> {rec.candidate.email}</p>
+                      {rec.candidate.phone && <p><strong>📱</strong> {rec.candidate.phone}</p>}
+                      {rec.candidate.currentCompany && <p><strong>🏢</strong> {rec.candidate.currentCompany}</p>}
+                      {rec.candidate.yearsOfExperience && <p><strong>⏱️</strong> {rec.candidate.yearsOfExperience} years</p>}
+                      {rec.candidate.linkedinUrl && <p><strong>🔗</strong> <a href={rec.candidate.linkedinUrl} target="_blank" rel="noopener noreferrer">LinkedIn</a></p>}
+                      <p style={{marginTop: '10px'}}><strong>Notes:</strong> {rec.recruiterNotes}</p>
+                      {rec.companyFeedback && <div style={{marginTop: '10px', padding: '10px', background: '#fef3c7', borderRadius: '4px'}}><strong>Company feedback:</strong> {rec.companyFeedback}</div>}
+                    </>
+                  )}
+                </div>
               )}
-              {rec.companyFeedback && (
-                <div className="feedback"><strong>Company feedback:</strong> {rec.companyFeedback}</div>
+              
+              {rec.status === 'draft' && (
+                <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}>
+                  <button className="btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); handleSubmit(rec._id); }}>Submit</button>
+                  {!editingId && <button className="btn-secondary btn-sm" onClick={(e) => { e.stopPropagation(); setExpandedId(rec._id); startEdit(rec); }}>Edit</button>}
+                  <button className="btn-secondary btn-sm" style={{background: '#dc2626', color: 'white'}} onClick={(e) => { e.stopPropagation(); handleDelete(rec._id); }}>Delete</button>
+                </div>
               )}
             </div>
+
           ))}
         </div>
       )}
