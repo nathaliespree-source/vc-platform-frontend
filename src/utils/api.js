@@ -73,3 +73,22 @@ export const recommendations = {
 };
 
 export default api;
+
+export const candidates = {
+  getAll: async () => {
+    const response = await api.get('/candidates');
+    return response.data;
+  },
+  create: async (data) => {
+    const response = await api.post('/candidates', data);
+    return response.data;
+  },
+  update: async (id, data) => {
+    const response = await api.patch(`/candidates/${id}`, data);
+    return response.data;
+  },
+  delete: async (id) => {
+    const response = await api.delete(`/candidates/${id}`);
+    return response.data;
+  }
+};

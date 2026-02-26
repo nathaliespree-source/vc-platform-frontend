@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
-import { auth, jobs, recommendations } from './utils/api';
+import { auth, jobs, recommendations, candidates } from './utils/api';
 import './App.css';
 
 function LoginPage() {
@@ -31,8 +31,9 @@ function LoginPage() {
   return (
     <div className="login-container">
       <div className="login-box">
-        <h1>VC Portfolio Platform</h1>
-        <p className="subtitle">Connecting talent with portfolio companies</p>
+        <h1>The Vault</h1>
+        <p className="subtitle">A Private Bench of Curated Operators 
+and Leaders</p>
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -56,6 +57,213 @@ function LoginPage() {
     </div>
   );
 }
+
+function CandidateDatabase() {
+  const [candidatesList, setCandidatesList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '', email: '', phone: '', location: '',
+    currentSalary: '', expectedSalary: '', salaryCurrency: 'USD',
+    startMonth: '', startYear: '',
+    industry: '', currentRole: '', currentCompany: '',
+    yearsOfExperience: '', linkedinUrl: '',
+    education: '', qualifications: '', keywords: '', notes: ''
+  });
+
+  useEffect(() => {
+    loadCandidates();
+  }, []);
+
+  const loadCandidates = async () => {
+    try {
+      const data = await candidates.getAll();
+      setCandidatesList(data);
+    } catch (err) {
+      console.error('Error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        ...formData,
+        expectedStartDate: formData.startMonth && formData.startYear ? {
+          month: formData.startMonth,
+          year: parseInt(formData.startYear)
+        } : undefined
+      };
+      
+      if (editingId) {
+        await candidates.update(editingId, payload);
+        alert('Candidate updated!');
+      } else {
+        await candidates.create(payload);
+        alert('Candidate added!');
+      }
+      
+      setShowForm(false);
+      setEditingId(null);
+      setFormData({
+        name: '', email: '', phone: '', location: '',
+        currentSalary: '', expectedSalary: '', salaryCurrency: 'USD',
+        startMonth: '', startYear: '',
+        industry: '', currentRole: '', currentCompany: '',
+        yearsOfExperience: '', linkedinUrl: '',
+        education: '', qualifications: '', keywords: '', notes: ''
+      });
+      loadCandidates();
+    } catch (err) {
+      alert('Error saving candidate');
+    }
+  };
+
+  const handleEdit = (candidate) => {
+    setEditingId(candidate._id);
+    setFormData({
+      name: candidate.name,
+      email: candidate.email,
+      phone: candidate.phone || '',
+      location: candidate.location || '',
+      currentSalary: candidate.currentSalary || '',
+      expectedSalary: candidate.expectedSalary || '',
+      salaryCurrency: candidate.salaryCurrency || 'USD',
+      startMonth: candidate.expectedStartDate?.month || '',
+      startYear: candidate.expectedStartDate?.year || '',
+      industry: candidate.industry || '',
+      currentRole: candidate.currentRole || '',
+      currentCompany: candidate.currentCompany || '',
+      yearsOfExperience: candidate.yearsOfExperience || '',
+      linkedinUrl: candidate.linkedinUrl || '',
+      education: candidate.education || '',
+      qualifications: candidate.qualifications || '',
+      keywords: candidate.keywords || '',
+      notes: candidate.notes || ''
+    });
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this candidate?')) return;
+    try {
+      await candidates.delete(id);
+      alert('Candidate deleted!');
+      loadCandidates();
+    } catch (err) {
+      alert('Error deleting candidate');
+    }
+  };
+
+  if (loading) return <div className="loading">Loading...</div>;
+
+  return (
+    <div className="dashboard">
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+        <h1>Candidate Database</h1>
+        <button className="btn-primary" onClick={() => { setShowForm(!showForm); setEditingId(null); }}>
+          {showForm ? 'Cancel' : '+ Add Candidate'}
+        </button>
+      </div>
+
+      {showForm && (
+        <div style={{background: '#f9fafb', padding: '20px', borderRadius: '8px', marginBottom: '20px'}}>
+          <h2>{editingId ? 'Edit Candidate' : 'Add New Candidate'}</h2>
+          <form onSubmit={handleSubmit} className="form-large">
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+              <input required placeholder="Name *" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
+              <input required type="email" placeholder="Email *" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+              <input placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+              <input placeholder="Location" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} />
+              <input placeholder="Current Role" value={formData.currentRole} onChange={(e) => setFormData({...formData, currentRole: e.target.value})} />
+              <input placeholder="Current Company" value={formData.currentCompany} onChange={(e) => setFormData({...formData, currentCompany: e.target.value})} />
+              <input type="number" placeholder="Years of Experience" value={formData.yearsOfExperience} onChange={(e) => setFormData({...formData, yearsOfExperience: e.target.value})} />
+              <input placeholder="LinkedIn URL" value={formData.linkedinUrl} onChange={(e) => setFormData({...formData, linkedinUrl: e.target.value})} />
+            </div>
+
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginTop: '15px'}}>
+              <input type="number" placeholder="Current Salary" value={formData.currentSalary} onChange={(e) => setFormData({...formData, currentSalary: e.target.value})} />
+              <input type="number" placeholder="Expected Salary" value={formData.expectedSalary} onChange={(e) => setFormData({...formData, expectedSalary: e.target.value})} />
+              <select value={formData.salaryCurrency} onChange={(e) => setFormData({...formData, salaryCurrency: e.target.value})}>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+                <option value="AED">AED</option>
+              </select>
+            </div>
+
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px'}}>
+              <select value={formData.startMonth} onChange={(e) => setFormData({...formData, startMonth: e.target.value})}>
+                <option value="">Expected Start Month</option>
+                <option>January</option><option>February</option><option>March</option><option>April</option>
+                <option>May</option><option>June</option><option>July</option><option>August</option>
+                <option>September</option><option>October</option><option>November</option><option>December</option>
+              </select>
+              <select value={formData.startYear} onChange={(e) => setFormData({...formData, startYear: e.target.value})}>
+                <option value="">Expected Start Year</option>
+                <option>2025</option><option>2026</option><option>2027</option>
+              </select>
+            </div>
+
+            <div style={{marginTop: '15px'}}>
+              <select value={formData.industry} onChange={(e) => setFormData({...formData, industry: e.target.value})}>
+                <option value="">Select Industry</option>
+                <option>Fintech</option>
+                <option>Proptech</option>
+                <option>Healthtech</option>
+                <option>Ecommerce</option>
+                <option>Ride Hailing</option>
+                <option>Foodtech</option>
+                <option>Other</option>
+              </select>
+              {formData.industry === 'Other' && (
+                <input placeholder="Specify industry" value={formData.industryOther || ''} onChange={(e) => setFormData({...formData, industry: e.target.value})} style={{marginTop: '10px'}} />
+              )}
+            </div>
+
+            <textarea placeholder="Education" rows="3" value={formData.education} onChange={(e) => setFormData({...formData, education: e.target.value})} style={{marginTop: '15px'}} />
+            <textarea placeholder="Qualifications" rows="3" value={formData.qualifications} onChange={(e) => setFormData({...formData, qualifications: e.target.value})} style={{marginTop: '15px'}} />
+            <input placeholder="Keywords (comma-separated)" value={formData.keywords} onChange={(e) => setFormData({...formData, keywords: e.target.value})} style={{marginTop: '15px'}} />
+            <textarea placeholder="Notes" rows="4" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} style={{marginTop: '15px'}} />
+
+            <button type="submit" className="btn-primary" style={{marginTop: '20px'}}>{editingId ? 'Update' : 'Add'} Candidate</button>
+          </form>
+        </div>
+      )}
+
+      <div className="candidates-list">
+        {candidatesList.length === 0 ? (
+          <div className="empty-state"><p>No candidates yet. Add your first candidate!</p></div>
+        ) : (
+          candidatesList.map(candidate => (
+            <div key={candidate._id} className="rec-card">
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
+                <div>
+                  <h3>{candidate.name}</h3>
+                  <p>{candidate.currentRole} {candidate.currentCompany && `at ${candidate.currentCompany}`}</p>
+                  <p><strong>📧</strong> {candidate.email} {candidate.phone && `• 📱 ${candidate.phone}`}</p>
+                  {candidate.location && <p><strong>📍</strong> {candidate.location}</p>}
+                  {candidate.industry && <p><strong>Industry:</strong> {candidate.industry}</p>}
+                  {candidate.expectedSalary && <p><strong>💰</strong> Expected: {candidate.salaryCurrency} {candidate.expectedSalary.toLocaleString()}</p>}
+                  {candidate.keywords && <p><strong>🏷️</strong> {candidate.keywords}</p>}
+                </div>
+                <div style={{display: 'flex', gap: '10px'}}>
+                  <button className="btn-secondary btn-sm" onClick={() => handleEdit(candidate)}>Edit</button>
+                  <button className="btn-secondary btn-sm" style={{background: '#dc2626', color: 'white'}} onClick={() => handleDelete(candidate._id)}>Delete</button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 
 function RecruiterDashboard() {
   const [stats, setStats] = useState(null);
@@ -751,13 +959,14 @@ function Nav() {
   if (!user) return null;
   return (
     <nav className="navbar">
-      <div className="nav-brand"><h2>VC Platform</h2></div>
+      <div className="nav-brand"><h2>The Vault</h2></div>
       <div className="nav-links">
         {user.role === 'recruiter' ? (
           <>
             <Link to="/recruiter/dashboard">Dashboard</Link>
             <Link to="/recruiter/jobs">Jobs</Link>
             <Link to="/recruiter/recommendations">Recommendations</Link>
+            <Link to="/recruiter/candidates">Candidates</Link>
           </>
         ) : (
           <>
@@ -789,6 +998,7 @@ function App() {
         <Route path="/recruiter/jobs" element={<ProtectedRoute allowedRole="recruiter"><RecruiterJobsList /></ProtectedRoute>} />
         <Route path="/recruiter/recommend/:id" element={<ProtectedRoute allowedRole="recruiter"><RecommendForm /></ProtectedRoute>} />
         <Route path="/recruiter/recommendations" element={<ProtectedRoute allowedRole="recruiter"><RecruiterRecommendations /></ProtectedRoute>} />
+        <Route path="/recruiter/candidates" element={<ProtectedRoute allowedRole="recruiter"><CandidateDatabase /></ProtectedRoute>} />
         <Route path="/company/dashboard" element={<ProtectedRoute allowedRole="company"><CompanyDashboard /></ProtectedRoute>} />
         <Route path="/company/jobs/new" element={<ProtectedRoute allowedRole="company"><PostJobForm /></ProtectedRoute>} />
         <Route path="/company/recommendations" element={<ProtectedRoute allowedRole="company"><CompanyRecommendations /></ProtectedRoute>} />
