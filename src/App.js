@@ -672,6 +672,79 @@ function RecruiterRecommendations() {
     </div>
   );
 }
+function ChangePassword() {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const user = auth.getUser();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch('https://joyful-reflection-production-1049.up.railway.app/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+      if (response.ok) {
+        alert('Password changed successfully!');
+        navigate(user.role === 'recruiter' ? '/recruiter/dashboard' : '/company/dashboard');
+      } else {
+        setError('Failed to change password');
+      }
+    } catch (err) {
+      setError('Failed to change password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="login-container">
+      <div className="login-box">
+        <h1>Change Password</h1>
+        <p style={{color: '#dc2626', marginBottom: '20px'}}>⚠️ You must change your password before continuing</p>
+        {error && <div className="error-message">{error}</div>}
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Current Password</label>
+            <input type="password" required value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label>New Password (min 8 characters)</label>
+            <input type="password" required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label>Confirm New Password</label>
+            <input type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+          </div>
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? 'Changing...' : 'Change Password'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+
 function AdminAddCompany() {
   const [formData, setFormData] = useState({
     adminSecret: '', companyName: '', contactEmail: '', contactName: '',
