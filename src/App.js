@@ -672,7 +672,6 @@ function RecruiterRecommendations() {
     </div>
   );
 }
-
 function AdminAddCompany() {
   const [formData, setFormData] = useState({
     adminSecret: '', companyName: '', contactEmail: '', contactName: '',
@@ -685,17 +684,21 @@ function AdminAddCompany() {
     e.preventDefault();
     setMessage(''); setError('');
     try {
-      const response = await fetch('https://joyful-reflection-production-1049.up.railway.app/api/companies/admin/create', {
+      const response = await 
+fetch('https://joyful-reflection-production-1049.up.railway.app/api/companies/admin/create', 
+{
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
       const data = await response.json();
       if (response.ok) {
-        setMessage('Company created successfully!');
-        setFormData({ adminSecret: '', companyName: '', contactEmail: '', contactName: '', tempPassword: '', description: '', sector: '', location: '' });
+        setMessage('Company created!');
+        setFormData({ adminSecret: '', companyName: '', contactEmail: 
+'', contactName: '', tempPassword: '', description: '', sector: '', 
+location: '' });
       } else {
-        setError(data.message || 'Error creating company');
+        setError(data.message || 'Error');
       }
     } catch (err) {
       setError('Server error');
@@ -706,43 +709,104 @@ function AdminAddCompany() {
     <div className="login-container">
       <div className="login-box" style={{maxWidth: '500px'}}>
         <h1>Add New Company</h1>
-        {message && <div style={{padding: '10px', background: '#d1fae5', color: '#065f46', borderRadius: '4px', marginBottom: '15px'}}>{message}</div>}
+        {message && <div style={{padding: '10px', background: '#d1fae5', 
+color: '#065f46', borderRadius: '4px', marginBottom: 
+'15px'}}>{message}</div>}
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Admin Secret</label>
-            <input type="password" required value={formData.adminSecret} onChange={(e) => setFormData({...formData, adminSecret: e.target.value})} />
-          </div>
-          <div className="form-group">
-            <label>Company Name</label>
-            <input type="text" required value={formData.companyName} onChange={(e) => setFormData({...formData, companyName: e.target.value})} />
-          </div>
-          <div className="form-group">
-            <label>Contact Email</label>
-            <input type="email" required value={formData.contactEmail} onChange={(e) => setFormData({...formData, contactEmail: e.target.value})} />
-          </div>
-          <div className="form-group">
-            <label>Contact Name</label>
-            <input type="text" required value={formData.contactName} onChange={(e) => setFormData({...formData, contactName: e.target.value})} />
-          </div>
-          <div className="form-group">
-            <label>Temporary Password</label>
-            <input type="password" required value={formData.tempPassword} onChange={(e) => setFormData({...formData, tempPassword: e.target.value})} />
-          </div>
-          <div className="form-group">
-            <label>Description</label>
-            <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} rows="3" />
-          </div>
-          <div className="form-group">
-            <label>Sector</label>
-            <input type="text" value={formData.sector} onChange={(e) => setFormData({...formData, sector: e.target.value})} />
-          </div>
-          <div className="form-group">
-            <label>Location</label>
-            <input type="text" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} />
-          </div>
-          <button type="submit" className="btn-primary">Create Company</button>
+          <div className="form-group"><label>Admin Secret</label><input 
+type="password" required value={formData.adminSecret} onChange={(e) => 
+setFormData({...formData, adminSecret: e.target.value})} /></div>
+          <div className="form-group"><label>Company Name</label><input 
+type="text" required value={formData.companyName} onChange={(e) => 
+setFormData({...formData, companyName: e.target.value})} /></div>
+          <div className="form-group"><label>Contact Email</label><input 
+type="email" required value={formData.contactEmail} onChange={(e) => 
+setFormData({...formData, contactEmail: e.target.value})} /></div>
+          <div className="form-group"><label>Contact Name</label><input 
+type="text" required value={formData.contactName} onChange={(e) => 
+setFormData({...formData, contactName: e.target.value})} /></div>
+          <div className="form-group"><label>Temporary 
+Password</label><input type="password" required 
+value={formData.tempPassword} onChange={(e) => setFormData({...formData, 
+tempPassword: e.target.value})} /></div>
+          <div 
+className="form-group"><label>Description</label><textarea 
+value={formData.description} onChange={(e) => setFormData({...formData, 
+description: e.target.value})} rows="3" /></div>
+          <div className="form-group"><label>Sector</label><input 
+type="text" value={formData.sector} onChange={(e) => 
+setFormData({...formData, sector: e.target.value})} /></div>
+          <div className="form-group"><label>Location</label><input 
+type="text" value={formData.location} onChange={(e) => 
+setFormData({...formData, location: e.target.value})} /></div>
+          <button type="submit" className="btn-primary">Create 
+Company</button>
         </form>
+      </div>
+    </div>
+  );
+}
+
+
+function CompanyDashboard() {
+  const [stats, setStats] = useState(null);
+  const [jobsList, setJobsList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const [statsData, jobsData] = await Promise.all([jobs.getStats(), jobs.getAll()]);
+      setStats(statsData);
+      setJobsList(jobsData.slice(0, 5));
+    } catch (err) {
+      console.error('Error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div className="loading">Loading...</div>;
+
+  return (
+    <div className="dashboard">
+      <h1>Company Dashboard</h1>
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-value">{stats?.openJobs || 0}</div>
+          <div className="stat-label">Your Open Jobs</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">{stats?.urgentJobs || 0}</div>
+          <div className="stat-label">Urgent Roles</div>
+        </div>
+      </div>
+      <div className="section">
+        <div className="section-header">
+          <h2>Your Job Postings</h2>
+          <button className="btn-primary" onClick={() => navigate('/company/jobs/new')}>Post New Job</button>
+        </div>
+        <div className="jobs-list">
+          {jobsList.map(job => (
+            <div key={job._id} className="job-card">
+              <div className="job-header">
+                <div>
+                  <h3>{job.title}</h3>
+                  <p>{job.department} • {job.level}</p>
+                </div>
+                <span className={`badge-${job.status}`}>{job.status}</span>
+              </div>
+              <p>{job.description}</p>
+              {job.salaryRange && <p className="job-meta">💰 {job.salaryRange.currency} {job.salaryRange.min?.toLocaleString()} - {job.salaryRange.max?.toLocaleString()}</p>}
+              {job.expectedStartDate && <p className="job-meta">📅 Start: {job.expectedStartDate}</p>}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -1006,7 +1070,6 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/admin-add-company" element={<AdminAddCompany />} />
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/recruiter/dashboard" element={<ProtectedRoute allowedRole="recruiter"><RecruiterDashboard /></ProtectedRoute>} />
         <Route path="/recruiter/jobs" element={<ProtectedRoute allowedRole="recruiter"><RecruiterJobsList /></ProtectedRoute>} />
