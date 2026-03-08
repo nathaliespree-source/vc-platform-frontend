@@ -1070,6 +1070,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/admin-add-company" element={<AdminAddCompany />} 
+/>
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/recruiter/dashboard" element={<ProtectedRoute allowedRole="recruiter"><RecruiterDashboard /></ProtectedRoute>} />
         <Route path="/recruiter/jobs" element={<ProtectedRoute allowedRole="recruiter"><RecruiterJobsList /></ProtectedRoute>} />
