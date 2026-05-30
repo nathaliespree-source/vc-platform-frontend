@@ -301,10 +301,6 @@ function RecruiterDashboard() {
           <div className="stat-value">{stats?.totalCompanies || 0}</div>
           <div className="stat-label">Portfolio Companies</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-value">{stats?.urgentJobs || 0}</div>
-          <div className="stat-label">Urgent Roles</div>
-        </div>
       </div>
       <div className="section">
         <div className="section-header">
@@ -853,10 +849,6 @@ function CompanyDashboard() {
         <div className="stat-card">
           <div className="stat-value">{stats?.openJobs || 0}</div>
           <div className="stat-label">Your Open Jobs</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">{stats?.urgentJobs || 0}</div>
-          <div className="stat-label">Urgent Roles</div>
         </div>
       </div>
       <div className="section">
