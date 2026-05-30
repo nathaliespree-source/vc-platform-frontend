@@ -63,6 +63,8 @@ function CandidateDatabase() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [formData, setFormData] = useState({
     name: '', email: '', phone: '', location: '',
     currentSalary: '', expectedSalary: '', salaryCurrency: 'USD',
@@ -72,107 +74,64 @@ function CandidateDatabase() {
     education: '', qualifications: '', keywords: '', notes: ''
   });
 
-  useEffect(() => {
-    loadCandidates();
-  }, []);
+  useEffect(() => { loadCandidates(); }, []);
 
   const loadCandidates = async () => {
     try {
       const data = await candidates.getAll();
       setCandidatesList(data);
-    } catch (err) {
-      console.error('Error:', err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error('Error:', err); }
+    finally { setLoading(false); }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const payload = {
-        ...formData,
-        expectedStartDate: formData.startMonth && formData.startYear ? {
-          month: formData.startMonth,
-          year: parseInt(formData.startYear)
-        } : undefined
-      };
-      
-      if (editingId) {
-        await candidates.update(editingId, payload);
-        alert('Candidate updated!');
-      } else {
-        await candidates.create(payload);
-        alert('Candidate added!');
-      }
-      
-      setShowForm(false);
-      setEditingId(null);
-      setFormData({
-        name: '', email: '', phone: '', location: '',
-        currentSalary: '', expectedSalary: '', salaryCurrency: 'USD',
-        startMonth: '', startYear: '',
-        industry: '', currentRole: '', currentCompany: '',
-        yearsOfExperience: '', linkedinUrl: '',
-        education: '', qualifications: '', keywords: '', notes: ''
-      });
+      const payload = { ...formData, expectedStartDate: formData.startMonth && formData.startYear ? { month: formData.startMonth, year: parseInt(formData.startYear) } : undefined };
+      if (editingId) { await candidates.update(editingId, payload); alert('Updated!'); }
+      else { await candidates.create(payload); alert('Added!'); }
+      setShowForm(false); setEditingId(null);
+      setFormData({ name: '', email: '', phone: '', location: '', currentSalary: '', expectedSalary: '', salaryCurrency: 'USD', startMonth: '', startYear: '', industry: '', currentRole: '', currentCompany: '', yearsOfExperience: '', linkedinUrl: '', education: '', qualifications: '', keywords: '', notes: '' });
       loadCandidates();
-    } catch (err) {
-      alert('Error saving candidate');
-    }
+    } catch (err) { alert('Error saving candidate'); }
   };
 
-  const handleEdit = (candidate) => {
-    setEditingId(candidate._id);
-    setFormData({
-      name: candidate.name,
-      email: candidate.email,
-      phone: candidate.phone || '',
-      location: candidate.location || '',
-      currentSalary: candidate.currentSalary || '',
-      expectedSalary: candidate.expectedSalary || '',
-      salaryCurrency: candidate.salaryCurrency || 'USD',
-      startMonth: candidate.expectedStartDate?.month || '',
-      startYear: candidate.expectedStartDate?.year || '',
-      industry: candidate.industry || '',
-      currentRole: candidate.currentRole || '',
-      currentCompany: candidate.currentCompany || '',
-      yearsOfExperience: candidate.yearsOfExperience || '',
-      linkedinUrl: candidate.linkedinUrl || '',
-      education: candidate.education || '',
-      qualifications: candidate.qualifications || '',
-      keywords: candidate.keywords || '',
-      notes: candidate.notes || ''
-    });
-    setShowForm(true);
+  const handleEdit = (c) => {
+    setEditingId(c._id);
+    setFormData({ name: c.name, email: c.email, phone: c.phone || '', location: c.location || '', currentSalary: c.currentSalary || '', expectedSalary: c.expectedSalary || '', salaryCurrency: c.salaryCurrency || 'USD', startMonth: c.expectedStartDate?.month || '', startYear: c.expectedStartDate?.year || '', industry: c.industry || '', currentRole: c.currentRole || '', currentCompany: c.currentCompany || '', yearsOfExperience: c.yearsOfExperience || '', linkedinUrl: c.linkedinUrl || '', education: c.education || '', qualifications: c.qualifications || '', keywords: c.keywords || '', notes: c.notes || '' });
+    setSelectedCandidate(null); setShowForm(true);
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this candidate?')) return;
-    try {
-      await candidates.delete(id);
-      alert('Candidate deleted!');
-      loadCandidates();
-    } catch (err) {
-      alert('Error deleting candidate');
-    }
+    try { await candidates.delete(id); alert('Deleted!'); setSelectedCandidate(null); loadCandidates(); }
+    catch (err) { alert('Error deleting candidate'); }
   };
+
+  const filteredCandidates = candidatesList.filter(c => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return ((c.name||'').toLowerCase().includes(q) || (c.currentRole||'').toLowerCase().includes(q) || (c.currentCompany||'').toLowerCase().includes(q) || (c.location||'').toLowerCase().includes(q) || (c.industry||'').toLowerCase().includes(q) || (c.keywords||'').toLowerCase().includes(q) || (c.qualifications||'').toLowerCase().includes(q) || (c.education||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q));
+  });
 
   if (loading) return <div className="loading">Loading...</div>;
 
   return (
     <div className="dashboard">
-      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
         <h1>Candidate Database</h1>
-        <button className="btn-primary" onClick={() => { setShowForm(!showForm); setEditingId(null); }}>
-          {showForm ? 'Cancel' : '+ Add Candidate'}
-        </button>
+        <button className="btn-primary" onClick={() => { setShowForm(!showForm); setEditingId(null); }}>{showForm ? 'Cancel' : '+ Add Candidate'}</button>
+      </div>
+
+      <div style={{marginBottom: '24px'}}>
+        <input type="text" placeholder="Search by name, role, company, location, industry, keywords..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{fontSize: '15px', padding: '14px 18px'}} />
+        {searchQuery && <p style={{fontSize: '13px', color: '#64748b', marginTop: '8px'}}>{filteredCandidates.length} candidate{filteredCandidates.length !== 1 ? 's' : ''} found</p>}
       </div>
 
       {showForm && (
-        <div style={{background: '#f9fafb', padding: '20px', borderRadius: '8px', marginBottom: '20px'}}>
-          <h2>{editingId ? 'Edit Candidate' : 'Add New Candidate'}</h2>
-          <form onSubmit={handleSubmit} className="form-large">
+        <div className="section">
+          <h2 style={{marginBottom: '24px'}}>{editingId ? 'Edit Candidate' : 'Add New Candidate'}</h2>
+          <form onSubmit={handleSubmit}>
             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
               <input required placeholder="Name *" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
               <input required type="email" placeholder="Email *" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
@@ -183,80 +142,72 @@ function CandidateDatabase() {
               <input type="number" placeholder="Years of Experience" value={formData.yearsOfExperience} onChange={(e) => setFormData({...formData, yearsOfExperience: e.target.value})} />
               <input placeholder="LinkedIn URL" value={formData.linkedinUrl} onChange={(e) => setFormData({...formData, linkedinUrl: e.target.value})} />
             </div>
-
             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginTop: '15px'}}>
               <input type="number" placeholder="Current Salary" value={formData.currentSalary} onChange={(e) => setFormData({...formData, currentSalary: e.target.value})} />
               <input type="number" placeholder="Expected Salary" value={formData.expectedSalary} onChange={(e) => setFormData({...formData, expectedSalary: e.target.value})} />
-              <select value={formData.salaryCurrency} onChange={(e) => setFormData({...formData, salaryCurrency: e.target.value})}>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-                <option value="GBP">GBP</option>
-                <option value="AED">AED</option>
-              </select>
+              <select value={formData.salaryCurrency} onChange={(e) => setFormData({...formData, salaryCurrency: e.target.value})}><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option><option value="AED">AED</option></select>
             </div>
-
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px'}}>
-              <select value={formData.startMonth} onChange={(e) => setFormData({...formData, startMonth: e.target.value})}>
-                <option value="">Expected Start Month</option>
-                <option>January</option><option>February</option><option>March</option><option>April</option>
-                <option>May</option><option>June</option><option>July</option><option>August</option>
-                <option>September</option><option>October</option><option>November</option><option>December</option>
-              </select>
-              <select value={formData.startYear} onChange={(e) => setFormData({...formData, startYear: e.target.value})}>
-                <option value="">Expected Start Year</option>
-                <option>2025</option><option>2026</option><option>2027</option>
-              </select>
-            </div>
-
             <div style={{marginTop: '15px'}}>
-              <select value={formData.industry} onChange={(e) => setFormData({...formData, industry: e.target.value})}>
-                <option value="">Select Industry</option>
-                <option>Fintech</option>
-                <option>Proptech</option>
-                <option>Healthtech</option>
-                <option>Ecommerce</option>
-                <option>Ride Hailing</option>
-                <option>Foodtech</option>
-                <option>Other</option>
-              </select>
-              {formData.industry === 'Other' && (
-                <input placeholder="Specify industry" value={formData.industryOther || ''} onChange={(e) => setFormData({...formData, industry: e.target.value})} style={{marginTop: '10px'}} />
-              )}
+              <select value={formData.industry} onChange={(e) => setFormData({...formData, industry: e.target.value})}><option value="">Select Industry</option><option>Fintech</option><option>Proptech</option><option>Healthtech</option><option>Ecommerce</option><option>Ride Hailing</option><option>Foodtech</option><option>Other</option></select>
             </div>
-
             <textarea placeholder="Education" rows="3" value={formData.education} onChange={(e) => setFormData({...formData, education: e.target.value})} style={{marginTop: '15px'}} />
             <textarea placeholder="Qualifications" rows="3" value={formData.qualifications} onChange={(e) => setFormData({...formData, qualifications: e.target.value})} style={{marginTop: '15px'}} />
             <input placeholder="Keywords (comma-separated)" value={formData.keywords} onChange={(e) => setFormData({...formData, keywords: e.target.value})} style={{marginTop: '15px'}} />
             <textarea placeholder="Notes" rows="4" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} style={{marginTop: '15px'}} />
-
             <button type="submit" className="btn-primary" style={{marginTop: '20px'}}>{editingId ? 'Update' : 'Add'} Candidate</button>
           </form>
         </div>
       )}
 
-      <div className="candidates-list">
-        {candidatesList.length === 0 ? (
-          <div className="empty-state"><p>No candidates yet. Add your first candidate!</p></div>
-        ) : (
-          candidatesList.map(candidate => (
-            <div key={candidate._id} className="rec-card">
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
-                <div>
-                  <h3>{candidate.name}</h3>
-                  <p>{candidate.currentRole} {candidate.currentCompany && `at ${candidate.currentCompany}`}</p>
-                  <p><strong>📧</strong> {candidate.email} {candidate.phone && `• 📱 ${candidate.phone}`}</p>
-                  {candidate.location && <p><strong>📍</strong> {candidate.location}</p>}
-                  {candidate.industry && <p><strong>Industry:</strong> {candidate.industry}</p>}
-                  {candidate.expectedSalary && <p><strong>💰</strong> Expected: {candidate.salaryCurrency} {candidate.expectedSalary.toLocaleString()}</p>}
-                  {candidate.keywords && <p><strong>🏷️</strong> {candidate.keywords}</p>}
-                </div>
-                <div style={{display: 'flex', gap: '10px'}}>
-                  <button className="btn-secondary btn-sm" onClick={() => handleEdit(candidate)}>Edit</button>
-                  <button className="btn-secondary btn-sm" style={{background: '#dc2626', color: 'white'}} onClick={() => handleDelete(candidate._id)}>Delete</button>
-                </div>
-              </div>
+      {selectedCandidate && (
+        <div onClick={() => setSelectedCandidate(null)} style={{position: 'fixed', inset: 0, background: 'rgba(10,24,40,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px', backdropFilter: 'blur(4px)'}}>
+          <div onClick={(e) => e.stopPropagation()} style={{background: 'white', borderRadius: '16px', maxWidth: '700px', width: '100%', maxHeight: '90vh', overflow: 'auto', padding: '40px', boxShadow: '0 32px 64px rgba(0,0,0,0.2)'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', paddingBottom: '20px', borderBottom: '1px solid #E2E8F0'}}>
+              <div><h2 style={{marginBottom: '4px'}}>{selectedCandidate.name}</h2><p style={{color: '#475569', fontSize: '15px'}}>{selectedCandidate.currentRole}{selectedCandidate.currentCompany && ` at ${selectedCandidate.currentCompany}`}</p></div>
+              <button onClick={() => setSelectedCandidate(null)} style={{background: 'transparent', border: 'none', fontSize: '24px', cursor: 'pointer'}}>×</button>
             </div>
-          ))
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px'}}>
+              {selectedCandidate.email && <div><strong style={{fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em'}}>Email</strong><p style={{marginTop: '4px'}}>{selectedCandidate.email}</p></div>}
+              {selectedCandidate.phone && <div><strong style={{fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em'}}>Phone</strong><p style={{marginTop: '4px'}}>{selectedCandidate.phone}</p></div>}
+              {selectedCandidate.location && <div><strong style={{fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em'}}>Location</strong><p style={{marginTop: '4px'}}>{selectedCandidate.location}</p></div>}
+              {selectedCandidate.yearsOfExperience && <div><strong style={{fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em'}}>Experience</strong><p style={{marginTop: '4px'}}>{selectedCandidate.yearsOfExperience} years</p></div>}
+              {selectedCandidate.industry && <div><strong style={{fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em'}}>Industry</strong><p style={{marginTop: '4px'}}>{selectedCandidate.industry}</p></div>}
+              {selectedCandidate.linkedinUrl && <div><strong style={{fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em'}}>LinkedIn</strong><p style={{marginTop: '4px'}}><a href={selectedCandidate.linkedinUrl} target="_blank" rel="noopener noreferrer">{selectedCandidate.linkedinUrl}</a></p></div>}
+            </div>
+            {selectedCandidate.education && <div style={{marginBottom: '16px'}}><strong style={{fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em'}}>Education</strong><p style={{marginTop: '4px', whiteSpace: 'pre-wrap'}}>{selectedCandidate.education}</p></div>}
+            {selectedCandidate.qualifications && <div style={{marginBottom: '16px'}}><strong style={{fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em'}}>Qualifications</strong><p style={{marginTop: '4px', whiteSpace: 'pre-wrap'}}>{selectedCandidate.qualifications}</p></div>}
+            {selectedCandidate.keywords && <div style={{marginBottom: '16px'}}><strong style={{fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em'}}>Keywords</strong><p style={{marginTop: '4px'}}>{selectedCandidate.keywords}</p></div>}
+            {selectedCandidate.notes && <div style={{marginBottom: '24px'}}><strong style={{fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em'}}>Notes</strong><p style={{marginTop: '4px', whiteSpace: 'pre-wrap'}}>{selectedCandidate.notes}</p></div>}
+            <div style={{display: 'flex', gap: '12px', paddingTop: '20px', borderTop: '1px solid #E2E8F0'}}>
+              <button className="btn-primary" onClick={() => handleEdit(selectedCandidate)}>Edit</button>
+              <button className="btn-secondary" style={{color: '#B91C1C'}} onClick={() => handleDelete(selectedCandidate._id)}>Delete</button>
+              <button className="btn-secondary" onClick={() => setSelectedCandidate(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="candidates-list">
+        {filteredCandidates.length === 0 ? (
+          <div style={{padding: '60px 20px', textAlign: 'center', background: 'white', borderRadius: '10px', border: '1px solid #E2E8F0'}}>
+            <p style={{color: '#64748b', fontSize: '15px'}}>{searchQuery ? 'No candidates match your search' : 'No candidates yet. Add your first candidate!'}</p>
+          </div>
+        ) : (
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px'}}>
+            {filteredCandidates.map(c => (
+              <div key={c._id} onDoubleClick={() => setSelectedCandidate(c)} style={{background: 'white', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '20px', cursor: 'pointer', transition: 'all 0.2s ease'}}>
+                <h3 style={{marginBottom: '4px'}}>{c.name}</h3>
+                {c.currentRole && <p style={{fontSize: '14px', color: '#0A1828', fontWeight: '500', marginBottom: '2px'}}>{c.currentRole}</p>}
+                {c.currentCompany && <p style={{fontSize: '13px', color: '#64748b'}}>{c.currentCompany}</p>}
+                <div style={{display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #F1F5F9', fontSize: '12px', color: '#64748b'}}>
+                  {c.location && <span>📍 {c.location}</span>}
+                  {c.yearsOfExperience && <span>⏱ {c.yearsOfExperience}y exp</span>}
+                  {c.industry && <span>🏢 {c.industry}</span>}
+                </div>
+                <p style={{fontSize: '11px', color: '#94A3B8', marginTop: '12px', fontStyle: 'italic'}}>Double-click for full profile</p>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
