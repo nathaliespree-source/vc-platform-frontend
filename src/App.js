@@ -1101,7 +1101,7 @@ function Nav() {
   return (
     <nav className="navbar">
       <div className="nav-brand"><img 
-src="/logo.png" alt="The Vault" style={{height: '40px'}} /></div>
+src="/logo.png" alt="The Vault" style={{height: '140px'}} /></div>
       <div className="nav-links">
         {user.role === 'recruiter' ? (
           <>
